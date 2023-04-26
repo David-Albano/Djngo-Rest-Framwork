@@ -1,46 +1,48 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
 from posts.models import Post
 from posts.serializers import PostSerializer
 
-@csrf_exempt
-def posts_list(request):
+@api_view(['GET', 'POST'])
+def posts_list(request, format=None):
     if request.method == 'GET':
         posts = Post.objects.all()
         posts_serialized = PostSerializer(posts, many=True)
-        return JsonResponse(posts_serialized.data, safe=False)
+        return Response(posts_serialized.data)
+    
     elif request.method == 'POST':
-        post_data = JSONParser().parse(request)
-        post_data_serialized = PostSerializer(data=post_data)
+        post_data_serialized = PostSerializer(data=request.data)
+
         if post_data_serialized.is_valid():
             post_data_serialized.save()
-            return JsonResponse(post_data_serialized.data, status=201)
+            return Response(posts_serialized.data, status=status.HTTP_201_CREATED)
 
-        return JsonResponse(post_data_serialized.errors, status=400)
+        return Response(posts_serialized.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-@csrf_exempt
-def posts_details(request, post_id):
+@api_view(['GET', 'PUT', 'DELETE'])
+def posts_details(request, post_id, format=None):
     try:
         post = Post.objects.get(pk=post_id)
     except Post.DoesNotExist:
-        return HttpResponse(status=400)
+        return Response(status=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
         post_serialized = PostSerializer(post)
-        return JsonResponse(post_serialized.data)
+        return Response(post_serialized.data)
+    
     elif request.method == 'PUT':
-        post_data = JSONParser().parser(request)
-        post_data_serialized = PostSerializer(post, data=post_data)
+        post_data_serialized = PostSerializer(post, data=request.data)
         
         if post_data_serialized.is_valid():
             post_data_serialized.save()
-            return JsonResponse(post_data_serialized.data)
+            return Response(post_data_serialized.data)
         
-        return JsonResponse(post_data_serialized.errors, status=400)
+        return Response(post_data_serialized.errors, status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
         post.delete()
-        return JsonResponse(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)
