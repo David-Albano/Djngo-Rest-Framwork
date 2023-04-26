@@ -5,6 +5,7 @@ class Post(md.Model):
     title = md.CharField(max_length=100, blank=False)
     content = md.TextField()
     author = md.CharField(max_length=100, blank=False)
+    owner = md.ForeignKey('auth.user', related_name='posts', on_delete=md.CASCADE)
 
     class Meta:
-        ordering=['created']
+        ordering = ['created']
