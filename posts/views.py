@@ -1,53 +1,32 @@
 from django.shortcuts import render
 from rest_framework.response import Response
-from rest_framework import status
 from posts.models import Post
 from posts.serializers import PostSerializer
 from rest_framework.views import APIView
 from django.http import Http404
+from rest_framework import status, mixins, generics
 
-class PostList(APIView):
-    def get(self, request, format=None):
-        posts = Post.objects.all()
-        posts_serialized = PostSerializer(posts, many=True)
-        return Response(posts_serialized.data)
+class PostList(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
+    posts_queryset = Post.objects.all()
+    posts_serializer_class = PostSerializer
 
-    def post(self, request, format=None):
-        post_data_serialized = PostSerializer(data=request.data)
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
-        if post_data_serialized.is_valid():
-            post_data_serialized.save()
-            return Response(post_data_serialized.data, status=status.HTTP_201_CREATED)
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+   
+
+class PostDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
+    posts_queryset = Post.objects.all()
+    posts_serializer_class = PostSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
     
-        return Response(post_data_serialized.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
     
-
-class PostDetail(APIView):
-    
-    def get_post(self, post_id):
-        try:
-            return Post.objects.get(pk=post_id)
-        except Post.DoesNotExist:
-            raise Http404
-
-    def get(self, request, post_id, format=None):
-        post = self.get_post(post_id)
-        post_serialized = PostSerializer(post)
-        return Response(post_serialized.data)
-    
-    def put(self, request, post_id, format=None):
-        post = self.get_post(post_id)
-        post_data_serialized = PostSerializer(post, data=request.data)
-
-        if post_data_serialized.is_valid():
-            post_data_serialized.save()
-            return Response(post_data_serialized.data)
-    
-        return Response(post_data_serialized.error, status=status.HTTP_400_BAD_REQUEST)
-    
-    def delete(self, request, post_id, format=None):
-        post = self.get_post(post_id)
-        post.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)    
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)   
     
