@@ -4,29 +4,16 @@ from posts.models import Post
 from posts.serializers import PostSerializer
 from rest_framework.views import APIView
 from django.http import Http404
-from rest_framework import status, mixins, generics
+from rest_framework import status, generics
 
-class PostList(mixins.ListModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
-    posts_queryset = Post.objects.all()
-    posts_serializer_class = PostSerializer
-
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
+class PostList(generics.ListCreateAPIView):
+    # This attributes names must like this always from these kind class
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
    
 
-class PostDetail(generics.GenericAPIView, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
-    posts_queryset = Post.objects.all()
-    posts_serializer_class = PostSerializer
-
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
-    
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
-    
-    def delete(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)   
+class PostDetail(generics.RetrieveUpdateDestroyAPIView):
+    # This attributes names must like this always from these kind class
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
     
