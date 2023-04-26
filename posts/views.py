@@ -1,48 +1,53 @@
 from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from posts.models import Post
 from posts.serializers import PostSerializer
+from rest_framework.views import APIView
+from django.http import Http404
 
-@api_view(['GET', 'POST'])
-def posts_list(request, format=None):
-    if request.method == 'GET':
+class PostList(APIView):
+    def get(self, request, format=None):
         posts = Post.objects.all()
         posts_serialized = PostSerializer(posts, many=True)
         return Response(posts_serialized.data)
-    
-    elif request.method == 'POST':
+
+    def post(self, request, format=None):
         post_data_serialized = PostSerializer(data=request.data)
 
         if post_data_serialized.is_valid():
             post_data_serialized.save()
-            return Response(posts_serialized.data, status=status.HTTP_201_CREATED)
+            return Response(post_data_serialized.data, status=status.HTTP_201_CREATED)
+    
+        return Response(post_data_serialized.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(posts_serialized.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-@api_view(['GET', 'PUT', 'DELETE'])
-def posts_details(request, post_id, format=None):
-    try:
-        post = Post.objects.get(pk=post_id)
-    except Post.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+class PostDetail(APIView):
     
-    if request.method == 'GET':
+    def get_post(self, post_id):
+        try:
+            return Post.objects.get(pk=post_id)
+        except Post.DoesNotExist:
+            raise Http404
+
+    def get(self, request, post_id, format=None):
+        post = self.get_post(post_id)
         post_serialized = PostSerializer(post)
         return Response(post_serialized.data)
     
-    elif request.method == 'PUT':
+    def put(self, request, post_id, format=None):
+        post = self.get_post(post_id)
         post_data_serialized = PostSerializer(post, data=request.data)
-        
+
         if post_data_serialized.is_valid():
             post_data_serialized.save()
             return Response(post_data_serialized.data)
-        
-        return Response(post_data_serialized.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    elif request.method == 'DELETE':
+        return Response(post_data_serialized.error, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, post_id, format=None):
+        post = self.get_post(post_id)
         post.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)    
+    
